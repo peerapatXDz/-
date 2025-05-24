@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>คำนวณ รายรับ-รายจ่าย</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Tahoma, sans-serif;
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 20px;
+    }
+
+    label {
+      display: block;
+      margin-top: 5px;
+    }
+
+    input[type="number"] {
+      width: 200px;
+      padding: 5px;
+    }
+
+    .section {
+      margin-top: 30px;
+      border-top: 2px solid #ccc;
+      padding-top: 10px;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+    }
+
+    #calculate {
+      background-color: #f60;
+      color: white;
+    }
+
+    #reset {
+      background-color: #06c;
+      color: white;
+    }
+
+    canvas {
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>คำนวณ รายรับ-รายจ่าย</h1>
+
+  <div class="section">
+    <h2>รายได้ (หลังหักภาษี)</h2>
+    <label>เงินเดือนและรายได้พิเศษ: <input type="number" id="income1" value="0"></label>
+    <label>เงินบำนาญ: <input type="number" id="income2" value="0"></label>
+    <label>รายได้การลงทุนและเงินฝาก: <input type="number" id="income3" value="0"></label>
+    <label>รายได้อื่น ๆ: <input type="number" id="income4" value="0"></label>
+  </div>
+
+  <div class="section">
+    <h2>ค่าใช้จ่าย</h2>
+    <label>ค่าผ่อนบ้าน: <input type="number" id="exp1" value="0"></label>
+    <label>ค่าสาธารณูปโภค: <input type="number" id="exp2" value="0"></label>
+    <label>ค่าอาหาร: <input type="number" id="exp3" value="0"></label>
+    <label>ค่าเดินทาง: <input type="number" id="exp4" value="0"></label>
+    <label>ค่าเสื้อผ้า: <input type="number" id="exp5" value="0"></label>
+    <label>ค่าเลี้ยงดูบุตร/การศึกษา: <input type="number" id="exp6" value="0"></label>
+    <label>ค่ารถ/สินเชื่อ: <input type="number" id="exp7" value="0"></label>
+    <label>บัตรเครดิต/เงินกู้: <input type="number" id="exp8" value="0"></label>
+    <label>เงินออม/ประกัน: <input type="number" id="exp9" value="0"></label>
+    <label>ค่ารักษาพยาบาล: <input type="number" id="exp10" value="0"></label>
+    <label>ค่าหนังสือ/เสริม: <input type="number" id="exp11" value="0"></label>
+  </div>
+
+  <button id="calculate" onclick="calculate()">คำนวณ</button>
+  <button id="reset" onclick="resetForm()">Reset</button>
+
+  <div class="section">
+    <h2>ผลลัพธ์</h2>
+    <div id="resultText"></div>
+    <canvas id="barChart" width="400" height="200"></canvas>
+    <canvas id="pieChart" width="400" height="200"></canvas>
+  </div>
+
+  <script>
+    let barChart, pieChart;
+
+    function getValue(id) {
+      return parseFloat(document.getElementById(id).value) || 0;
+    }
+
+    function calculate() {
+      const incomeIds = ['income1', 'income2', 'income3', 'income4'];
+      const expenseIds = ['exp1','exp2','exp3','exp4','exp5','exp6','exp7','exp8','exp9','exp10','exp11'];
+      const expenseLabels = [
+        'ค่าผ่อนบ้าน', 'ค่าสาธารณูปโภค', 'ค่าอาหาร', 'ค่าเดินทาง', 'ค่าเสื้อผ้า',
+        'เลี้ยงดู/การศึกษา', 'ค่ารถ/สินเชื่อ', 'บัตรเครดิต/เงินกู้', 'เงินออม/ประกัน',
+        'ค่ารักษาพยาบาล', 'ค่าหนังสือ/เสริม'
+      ];
+
+      const incomeTotal = incomeIds.reduce((sum, id) => sum + getValue(id), 0);
+      const expenseValues = expenseIds.map(id => getValue(id));
+      const expenseTotal = expenseValues.reduce((sum, val) => sum + val, 0);
+      const balance = incomeTotal - expenseTotal;
+
+      // แสดงผลลัพธ์ข้อความ
+      document.getElementById('resultText').innerHTML = `
+        <strong>รายได้รวม:</strong> ${incomeTotal.toLocaleString()} บาท<br>
+        <strong>รายจ่ายรวม:</strong> ${expenseTotal.toLocaleString()} บาท<br>
+        <strong>ยอดคงเหลือ:</strong> ${balance.toLocaleString()} บาท
+      `;
+
+      // กราฟแท่ง
+      if (barChart) barChart.destroy();
+      const ctxBar = document.getElementById('barChart').getContext('2d');
+      barChart = new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+          labels: ['รายได้', 'รายจ่าย', 'คงเหลือ'],
+          datasets: [{
+            label: 'บาท',
+            data: [incomeTotal, expenseTotal, balance],
+            backgroundColor: ['#28a745', '#dc3545', '#007bff']
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+
+      // กราฟวงกลม
+      if (pieChart) pieChart.destroy();
+      const ctxPie = document.getElementById('pieChart').getContext('2d');
+      pieChart = new Chart(ctxPie, {
+        type: 'pie',
+        data: {
+          labels: expenseLabels,
+          datasets: [{
+            data: expenseValues,
+            backgroundColor: [
+              '#ff9999', '#66b3ff', '#99ff99', '#ffcc99', '#c2c2f0',
+              '#ffb3e6', '#c2f0c2', '#ffc266', '#ff6666', '#66cccc', '#9999ff'
+            ]
+          }]
+        },
+        options: {
+          plugins: {
+            title: {
+              display: true,
+              text: 'สัดส่วนค่าใช้จ่ายต่อเดือน (%)'
+            }
+          }
+        }
+      });
+    }
+
+    function resetForm() {
+      document.querySelectorAll('input[type="number"]').forEach(input => input.value = 0);
+      document.getElementById('resultText').innerHTML = '';
+      if (barChart) barChart.destroy();
+      if (pieChart) pieChart.destroy();
+    }
+  </script>
+
+</body>
+</html>
